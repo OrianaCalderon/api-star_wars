@@ -11,20 +11,18 @@ class Nature(Enum):
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name=db.Column(db.String(250), nullable=False)
-    lastname:db.Column(db.String(250), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password=db.Column(db.String(100), nullable=False)
 
     favorites = db.relationship("Favorites", backref="user", uselist=True)
 
     def __repr__(self):
-        return '<User %r>' % self.username
+        return '<User %r>' % self.name
 
     def serialize(self):
         return {
             "id": self.id,
             "name":self.name,
-            "lastname": self.lastname,
             "email": self.email
         }
 
@@ -32,7 +30,6 @@ class Favorites(db.Model):
     id= db.Column(db.Integer, primary_key=True)
     name=db.Column(db.String(250), nullable=False)
     nature=db.Column(db.Enum(Nature), nullable=False)
-
     nature_id = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
@@ -41,7 +38,8 @@ class Favorites(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
-            "nature": self.nature
+            # "nature": self.nature,
+            "nature_id": self.nature_id
         }
 
 
