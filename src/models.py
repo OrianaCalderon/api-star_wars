@@ -38,7 +38,7 @@ class Favorites(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
-            # "nature": self.nature,
+            "nature": self.nature.name,
             "nature_id": self.nature_id
         }
 

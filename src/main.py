@@ -38,15 +38,6 @@ def sitemap():
     return generate_sitemap(app)
 
 
-# @app.route('/user', methods=['GET'])
-# def handle_hello():
-
-#     response_body = {
-#         "msg": "Hello, this is your GET /user response "
-#     }
-
-#     return jsonify(response_body), 200
-
 
 #ruta GET para todos los personajes y para traer personaje por id
 #si funciona
@@ -67,6 +58,7 @@ def handle_people(people_id=None):
         return jsonify({"Not found"}), 404
 
 
+
 #ruta GET para todos los planetas y para traer los planetas por id
 @app.route('/planets', methods=['GET'])
 @app.route('/planets/<int:planet_id>', methods=['GET'])
@@ -84,6 +76,8 @@ def handle_planet(planet_id=None):
 
         return jsonify({"Not found"}), 404
 
+
+
 #ruta GET para traer todos los usuarios
 @app.route('/users', methods=['GET'])
 def handle_user(user_id=None, nature=None, favorite_id=None):
@@ -92,6 +86,7 @@ def handle_user(user_id=None, nature=None, favorite_id=None):
             user = User.query.all()
             return jsonify(list(map(lambda item: item.serialize(), user)), 200)
     return jsonify({"Not found"}),404
+
 
 
 #ruta GET para traer el usuario por su id
@@ -106,66 +101,76 @@ def handle_user_id(user_id=None, nature=None, favorite_id=None):
     return jsonify({"Not found"}),404
 
 
+
 #trae toda la lista de favoritos de todos los usuarios
 @app.route('/users/favorite', methods=['GET'])
-def handle_user_favorite():
+def handle_users_favorites():
     if request.method == 'GET':
         favorites = Favorites()
         favorites=Favorites.query.all()
         return jsonify(list(map(lambda items: items.serialize(), favorites))), 200
-    return jsonify({"Not found"}),404
+    else: 
+        return jsonify({"Method not allowed"}),405
+
+
 
 #deberia traer los favoritos de solo un usuario
-# @app.route('/users/<int:user_id>/favorite', methods=['GET'])
-# def handle_user_favorite(user_id,id):
-#     if request.method == 'GET':
-#         favorites = Favorites()
-#         favorites=Favorites.query.filter(id=user_id).all()
-#         return jsonify(list(map(lambda items: items.serialize(), favorites))), 200
-#     return jsonify({"Not found"}),404
+@app.route('/users/<int:user_id>/favorite', methods=['GET'])
+def handle_user_favorite(user_id=None):
+    if request.method == 'GET':
+        if user_id is not None:
+            favorites=Favorites.query.filter_by(user_id=user_id).all()
+        return jsonify(list(map(lambda items: items.serialize(), favorites))), 200
+    return jsonify({"Not found"}),404
 
 
 
 #ruta para hacer post de un favorito segun su naturaleza
 @app.route('/users/<int:user_id>/favorite/<string:nature>/<int:nature_id>', methods=['POST'])
-def handle_favorite_post(user_id = None, nature = None, favorite_id = None,nature_id=None):
+def handle_favorite_post(user_id = None, nature = None, nature_id=None):
     if request.method == 'POST':
         user = User.query.get(user_id)
         if user is None:
             return jsonify({"message":"Error, couldn't find user"}), 404
-        elif user is not None:
-
+        elif user:
             body = request.json
-            if body.get("nature") != "people" and body["nature"] != "planet" :
-                return jsonify({"message":"Error, bad property"}), 400
-            elif body.get("name") is None:
-                return jsonify({"message":"Error, bad property"}), 400
-            elif body.get("nature_id") is None :
-                return jsonify({"message":"Error, bad property"}), 400
-
-            another_fav = Favorites(name=body.get("name"), nature=body.get("nature"), nature_id=body.get("nature_id"), user_id=user_id)
-            
-            db.session.add(another_fav)
-
+            if nature is not None and body['name'] is not None:
+                another_fav = Favorites(name=body['name'], nature=nature, nature_id=body.get("nature_id"), user_id=user_id)
+                db.session.add(another_fav)
             try:
                 db.session.commit()
                 return jsonify(another_fav.serialize()), 201
             except Exception as error:
-                print(error.args)
-                db.session.rollback()
-                return jsonify({"message": f"Error {error.args}"}), 500
-
-
-
-
-
+                    print(error.args)
+                    db.session.rollback()
+                    return jsonify({"message": f"Error {error.args}"}), 500
+    else: 
+        return jsonify({"Method not allowed"}),405
 
 
 
 #ruta para hacer DELETE de un favorito segun su naturaleza
-# @app.route("/favorite/<string:nature>/<int:nature_id>", methods=['DELETE'])
-# def handle_favorite_delete(user_id = None):
-#     if request.method== 'DELETE':
+@app.route("/<int:user_id>/favorite/<string:nature>/<int:nature_id>/", methods=['DELETE'])
+def handle_favorite_delete(nature_id = None, nature=None, user_id=None):
+    if request.method == 'DELETE':
+        body = request.json
+        if body.get("nature") == "people" or body["nature"] == "planets":
+            if nature_id:
+                delete_favorito = Favorites.query.filter_by(nature_id=nature_id, user_id= user_id).first()
+                print(delete_favorito.serialize())
+                if delete_favorito is None:
+                    return jsonify({"message":"Not found"}), 404
+                else:
+                    db.session.delete(delete_favorito)
+                    try:
+                        db.session.commit()
+                        return jsonify([]), 204
+                    except Exception as error:
+                        print(error.args)
+                        db.session.rollback()
+                        return jsonify({"message":f"Error {error.args}"}),500
+    else: 
+        return jsonify({"Method not allowed"}),405
 
 
 
